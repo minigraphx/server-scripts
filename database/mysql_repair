@@ -1,0 +1,19 @@
+### MySQL Setup ###
+# better use .my.cnf
+MUSER="user"
+MPASS="password"
+MHOST="localhost"
+# No need to change below this, unless your mysql_repair_db.sh script isn't on /root/scripts/mysql_repair_db.sh
+MYSQL="$(which mysql)"
+
+DBS="$($MYSQL -u $MUSER -h $MHOST -p$MPASS -Bse 'show databases')"
+for db in $DBS
+do
+  if [ "$db" != "information_schema" ]; then
+#    RES="$(/root/scripts/mysql_repair_db.sh --optimize --credentials "-u${MUSER} -p${MPASS}" $db)"
+    #echo $RES >> /root/scripts/log_mysql_optimize
+    RES="$(/root/scripts/mysql_repair_db.sh --repair --credentials "-u${MUSER} -p${MPASS}" $db)"
+    #echo $RES >> /root/scripts/log_mysql_repair
+  fi
+done
+

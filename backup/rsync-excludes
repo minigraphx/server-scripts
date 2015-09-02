@@ -1,0 +1,17 @@
+/mnt
+/var/lib/mysql
+/var/lib/php5/
+/var/log/mysql
+/root
+/proc
+/dev
+/sys
+/tmp
+/lost+found
+/cdrom
+/media
+/opt
+/srv
+/home/www/sess_tmp/
+/home/www/sess_tmp_old
+/data

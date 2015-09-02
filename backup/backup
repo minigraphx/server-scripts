@@ -1,0 +1,24 @@
+#!/bin/bash
+
+hostname=`hostname -s`
+
+backup_host=1.1.1.1
+backup_dir=/backups/${hostname}/
+
+backup_mnt=/mnt/${hostname}
+
+if [ ! -d ${backup_mnt} ]; then
+  mkdir ${backup_mnt};
+fi
+#sshfs -o reconnect -o sshfs_sync -o allow_other ${backup_host}:${backup_dir} ${backup_mnt}
+mount ${backup_host}:${backup_dir} ${backup_mnt}
+
+stat=$?;
+
+if [ ${stat} -eq 0 ]; then
+  /usr/local/sbin/backup-rsync.sh ${hostname} > /root/backup.log 2>&1 && /usr/local/sbin/backup-rotate.sh ${hostname} >> /root/backup.log 2>&1
+  cp -a /root/backup.log ${backup_mnt}/${hostname}.log
+  umount ${backup_mnt}
+fi
+
+
