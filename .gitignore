@@ -1,2 +1,3 @@
+# don't commit logfiles
 access_log*
 *.log
