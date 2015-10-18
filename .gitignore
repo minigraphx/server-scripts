@@ -1,3 +1,6 @@
 # don't commit logfiles
 access_log*
 *.log
+
+# Mac .DS_Store
+.DS_Store
