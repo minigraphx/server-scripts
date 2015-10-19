@@ -3,11 +3,11 @@
 namespace LogAnalyzer;
 
 /**
- * Description of Logger
+ * Reads log File
  *
  * @author Andreas Schmidt
  */
-class Logger {
+class Logger implements \SplSubject {
     private $combinedLog = "%h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\"";
     private $LogSyntax = array('host' => '(\S+)', 
             'time' => '\[([^:]+):(\d+:\d+:\d+) ([^\]]+)\]', 
@@ -21,11 +21,65 @@ class Logger {
     private $summary;
     private $lines;
     private $timeInterval = 'd';
-    
+    private $observers;
+    private $logFileName;
+
+    private $observerList;
+    /**
+     * Logger constructor
+     * opens file, calculates traffic, closes File
+     *
+     * param string: FilenameAccessLog File Name of the Logfile
+     * param string: logFormat Apache Syntax Logformat for the File
+     */
+    function __construct($FilenameAccessLog, $logFormat = '') {
+        if( empty($logFormat) )
+            $this->logFormat = $this->combinedLog;
+        else
+            $this->logFormat = $logFormat;
+        $this->logFileName = $FilenameAccessLog;
+
+        $this->observers = new \SplObjectStorage();
+    }
+
+    public function start() {
+        if ( ($logHandle = fopen($this->logFileName, "r")) !== FALSE) {
+            $this->summary = $this->readFile($logHandle);
+            fclose($logHandle);
+        }
+        print($fileTraffic);
+    }
+
+    public function attach(\SplObserver $observer) {
+        printf("adding observer: %s \n", get_class($observer));
+        $this->observers->attach($observer);
+    }
+
+    public function detach(\SplObserver $observer) {
+        $this->observers->detach($observer);
+    }
+
+    public function notify() {
+        foreach($this->observers as $notifiedObserver) {
+            $notifiedObserver->update($this);
+        }
+    }
+
+    public function printResults() {
+        foreach($this->observers as $observer) {
+            $observer->printResult();
+            if( function_exists("$observer->printSummary") ) {
+                $observer->printSummary();
+            }
+        }
+    }
+
+    // readFile needs observer pattern
     private function readFile(&$fileHandle) {
         $line = 0;
         while (($content=fgets($fileHandle)) !== FALSE) {
             $this->read($content);
+            $this->notify();
             $line++;
             $size = $this->getField("outbytes"); // get Size
             $lineDate = $this->getField("time");
@@ -60,10 +114,11 @@ class Logger {
             //$sum[$date] = $this->getHumanSize($dailySum);
             $sum[$date] = $dailySum;
         }
-//        $humanSum = $this->getHumanSize($sum);
+/*        $humanSum = $this->getHumanSize($sum); */
         $humanStartDate = $firstDate->format('d.m.Y H:i:s');
         $humanEndDate = $lastDate->format('d.m.Y H:i:s');
         //return $humanStartDate.' - '.$humanEndDate.': '.$humanSum.PHP_EOL;
+        $this->printResults();
         return $sum;
     }
     
@@ -87,10 +142,10 @@ class Logger {
     }
     
     /**
-     * returns regex for speciefied Logging Format, currently only
-     * apache combined Log is testet
+     * returns regex for specified Logging Format, currently only
+     * apache combined Log is tested
      *
-     * TODO: open mutlipple Files
+     * TODO: open multiple Files
      * TODO: return Traffic by time periods i.e daily or hourly Traffic through files
      * 
      * param $Logformat: apache syntax Logformat
@@ -98,8 +153,9 @@ class Logger {
      */
     private function getLogSyntax($LogFormat) {
         $format = '';
-        // tested Format is combined Log:
-        // "%h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\""
+        /* tested Format is combined Log:
+           "%h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\""
+        */
         $LogFormatArray = split(' ', $LogFormat);
         foreach( $LogFormatArray as $token ) {
             $token = str_replace("\"",'',$token);
@@ -121,26 +177,7 @@ class Logger {
         $format = '/^'.$format.'$/';
         return $format;
     }
-    
-    /**
-     * Logger constructor
-     * opens file, calculates traffic, closes File
-     *
-     * param string: FilenameAccessLog File Name of the Logfile
-     * param string: logFormat Apache Syntax Logformat for the File
-     */  
-    function __construct($FilenameAccessLog, $logFormat = '') {
-        if( empty($logFormat) )
-            $this->logFormat = $this->combinedLog;
-        else
-            $this->logFormat = $logFormat;
-        if ( ($logHandle = fopen($FilenameAccessLog, "r")) !== FALSE) {
-            $this->summary = $this->readFile($logHandle);
-            fclose($logHandle);
-        }
-        print($fileTraffic);
-	}
-    
+
     /**
      * reads a single line and splits it into its values
      * by regular Expression from logFormat
@@ -191,8 +228,7 @@ class Logger {
     }
     
     public function setInterval($interval) {
-        $thi->timeInterval = $interval;
+        $this->timeInterval = $interval;
     }
-    
-    
+
 }
